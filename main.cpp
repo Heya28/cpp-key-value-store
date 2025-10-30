@@ -43,11 +43,15 @@ int main(){
         }
         else if(command=="SET"){
             // ensuring that words.size() == 3 as SET command is SET, key, value. 
-            if(words.size()!=3){
+            if(words.size()<3){
                 cout<<"(error) wrong number of arguments for SET command."<<endl;
                 continue;
             }
-            storage[words[1]]=words[2]; // insert will not overwrite. 
+            string value=words[2];
+            for(size_t i=3; i<words.size();i++){
+                value+=" "+words[i];
+            }
+            storage[words[1]]=value; // insert will not overwrite. 
             cout<<"OK"<<endl;
         }
         else if(command=="GET"){
