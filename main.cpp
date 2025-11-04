@@ -6,7 +6,7 @@
 // manual implementation of trim function 
 std::string trim(const std::string& str){
     size_t first=str.find_first_not_of(" \t\n\r"); // find first non-whitespace
-    if(std::string::npos == first){ // if string is all whitespace
+    if( first == std::string::npos){ // if string is all whitespace
         return ""; // empty string
     }
     size_t last=str.find_last_not_of(" \t\n\r"); // find last non-white space
@@ -33,103 +33,81 @@ int main(){
             continue; // go back to starting of the loop. 
         }
 
+        // 2c. Parsing using more robust stringstream
+        std::stringstream ss(input_line);
+        std::string command,key,value,extra;
+
         // 2c. Extract command
         // find position of first space
-        size_t first_space= input_line.find(' ');
-        std::string command;
-        if(first_space==std::string::npos){
-            // no space found, entire line is command. 
-            command=input_line;
-        }else{
-            command=input_line.substr(0,first_space);
-        }
+        ss>>command; // stringstream automically skips leading whitespace ( does not matter if 1 or 20 )
 
         // 2d. Handle EXIT command
         if(command=="EXIT"){
+            // Edge Case: Check for "EXIT extra stuff"
+            if(ss>>extra){
+                std::cout<<"(error) Wrong Number of arguments for 'EXIT' Command. "<<std::endl;
+                continue;
+            }
             std::cout<<"Goodbye!"<<std::endl;
             break; // break out of the while loop. 
         }
         // 2e. Handle SET command
         else if(command=="SET"){
-            // SET key value is required. 
-            // If first_space DNE -> INVALID NUMBER OF ARGUMENTS
-            if(first_space==std::string::npos){
-                std::cout<<"(error) wrong number of arguments for SET command."<<std::endl;
+            // User types SET ( and nothing else or just whitespaces )
+            if(!(ss>>key)){
+                std::cout<<"(error) wrong number of arguments for 'SET' Command."<<std::endl;
                 continue;
             }
-            // Find Key ( Find Second Space )
-            size_t second_space=input_line.find(' ', first_space+1);
-            if(second_space==std::string::npos){
-                // no value only key 
-                std::cout<<"(error) wrong number of arguments for SET command."<<std::endl;
-                continue;
-            }
-            // Find Key ( keys cannot have whitespaces )
-            std::string key= trim(input_line.substr(first_space+1,second_space-first_space-1));
-            // Extract rest as Value. ( no trim, keep data )
-            std::string value=input_line.substr(second_space+1);
+            // Get the value ( including spaces )
+            std::getline(ss,value);
+            value=trim(value); // Trim value ( which may just be an empty space )
 
-            // empty key check. 
-            if(key.empty()){
-                std::cout<<"(error) Key cannot be empty."<<std::endl;
+            // check if empty string
+            if(value.empty()){
+                std::cout<<"(error) wrong number of arguments for 'SET' command. Value cannot be empty."<<std::endl;
                 continue;
-            }
+            }            
             // Store in Map
-            storage[key]=value;
+            storage[key]=value; // overwrites or creates a new key-value pair. 
             std::cout<<"OK"<<std::endl;
         }
         else if(command=="GET"){
             // GET key
-            if(first_space==std::string::npos){
-                std::cout<<"(error) GET requires a key."<<std::endl;
+            if(!(ss>>key)){ // also checks if key is valid ( key must not be whitespaces and key is a single word. )
+                std::cout<<"(error) 'GET' requires a key."<<std::endl;
                 continue;
             }
-            // check if key is valid. 
-            // if there is any space after key
-            size_t second_space=input_line.find(' ', first_space+1);
-            if(second_space!=std::string::npos){
-                std::cout<<"(error) GET takes only one argument."<<std::endl;
+            // check if an extra number of values exist.
+            if(ss>>extra){
+                std::cout<<"(error) wrong number of arguments for 'GET' command."<<std::endl;
                 continue;
-            }
-            std::string key = trim(input_line.substr(first_space+1));
-            // incase of single white space npos cant check as no characters left to check. 
-            if(key.empty()){
-                std::cout<<"(error) Key cannot be empty."<<std::endl;
-                continue;
-            }
+            } 
+            // retrieve the value at key and check if key exists in storage
             if(storage.count(key)){
-                std::cout<<"Value is "<<storage.at(key)<<std::endl;
+                std::cout<<storage.at(key)<<std::endl;
             }else{
-                std::cout<<"(nil)"<<std::endl;
+                std::cout<<"(nil)"<<std::endl; // not found response. 
             }
         }
         else if(command=="DEL"){
-            // DEL key
-            if(first_space==std::string::npos){
-                std::cout<<"(error) DEL requires a key."<<std::endl;
+            // check that key exists 
+            if(!(ss>>key)){
+                std::cout<<"(error) 'DEL' requires a key"<<std::endl;
                 continue;
             }
-            // check if key is valid
-            // if there is any space after key
-            size_t second_space=input_line.find(' ',first_space+1);
-            if(second_space!=std::string::npos){
-                std::cout<<"(error) DEL takes only one argument."<<std::endl;
+            // check if extra values exist
+            if(ss>>extra){
+                std::cout<<"(error) wrong number of arguments for 'DEL' command."<<std::endl;
                 continue;
             }
-            std::string key = trim(input_line.substr(first_space+1));
-            // incase of single white space
-            if(key.empty()){
-                std::cout<<"(error) Key cannot be empty."<<std::endl;
-                continue;
-            }
-            size_t deleted = storage.erase(key); // returns number deleted
-            if(deleted>0){
+            // erasing the key
+            if(storage.erase(key)>0){
                 std::cout<<"OK"<<std::endl;
             }else{
-                std::cout<<"(integer) 0"<<std::endl;
+                std::cout<<"(error) key not found."<<std::endl;
             }
-        }else{
-            std::cout<<"(error) Unknown command."<<std::endl;
+        }else{ // catch-all for unknown commands.
+            std::cout<<"(error) Unknown command. '"<<command<<"'"<<std::endl;
         }
     }
     return 0;
