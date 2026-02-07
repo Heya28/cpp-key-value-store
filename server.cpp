@@ -35,8 +35,29 @@ int main(){
    std::cout<<">>> Server is listening on port 1234."<<std::endl;
 
    while(true){
-    // logic
+    // struct to hold client's data ( IP/Port )
+    struct sockaddr_in client_addr={};
+    socklen_t addr_len=sizeof(client_addr);
+
+    // Blocking Call ( Waiting for Client )
+    // pauses program until client completes handshake. 
+   int client_fd=accept(server_fd,(struct sockaddr*)& client_addr, &addr_len);
+   if(client_fd<0){
+     std::cerr<<"Accept failed, retrying...\n";
+     continue;
    }
+   std::cout<<"Client connected (FD: "<<client_fd<<")\n";
+   // read from stream
+   char buffer[1024]={0};
+   ssize_t bytes_read=read(client_fd,buffer,sizeof(buffer)-1);
+   // convert buffer to std::string
+   // check content
+   // write response
+   // close client_fd
+
+   close(client_fd); // closing connection for now so we dont leak FDs
+   }
+   close(server_fd);
    return 0;
 
 }
