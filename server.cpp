@@ -7,7 +7,7 @@
 #include<cerrno> // errno variable
 
 // helper : kills app if system call fails as fail fast is better than continuing with a broken server
-void chek(int result, const char* msg){
+void check(int result, const char* msg){
    if(result<0){
       std::cerr<<"SYSCALL ERROR: "<<msg<<" ("<<std::strerror(errno) <<")\n";
       exit(1);
@@ -21,7 +21,7 @@ int main(){
 
    // configuring TCB to allow reusing port even if port busy. 
    int val=1;
-   setsockopt(server_fd,SOL_SOCKET,SO_REUSEADDDR,&val, sizeof(val));
+   setsockopt(server_fd,SOL_SOCKET,SO_REUSEADDR,&val, sizeof(val));
 
    // 2. setup address
    struct sockaddr_in addr={};
@@ -50,9 +50,35 @@ int main(){
    // read from stream
    char buffer[1024]={0};
    ssize_t bytes_read=read(client_fd,buffer,sizeof(buffer)-1);
+
+   // check if read failed or client disconnected
+   if(bytes_read<=0){
+      close(client_fd);
+      continue;
+   }
    // convert buffer to std::string
-   // check content
+   std::string str(buffer,bytes_read);
+
+   // handling potential crash on empty string
+   if(!str.empty() && str.back()=='\n'){
+      str.pop_back();
+   }
+
+   // msg in terminal and hit enter sends msg followed by a new line
+   if(str.back()=='\n'){ // ping\n is not equal to ping 
+      str.pop_back();
+   }
+
+   // logic & response
+   std::string response; // variable to hold msg
+   if(str=="ping"){
+      response="pong\n";
+   }else{
+      response="Unknown Command\n";
+   }
+   
    // write response
+   write(client_fd, reponse.c_str(),response.size())
    // close client_fd
 
    close(client_fd); // closing connection for now so we dont leak FDs
